@@ -10,17 +10,26 @@ export const EMAIL_NOT_CONFIGURED_MESSAGE = "Email is not configured";
 
 export type EmailProviderName = "resend" | "smtp";
 
+export type ResolvedEmailProvider =
+	| { name: "resend" }
+	| { name: "smtp"; host: string };
+
 export type EmailDeliveryStatus =
 	| { configured: true; provider: EmailProviderName }
 	| { configured: false; reason: string };
 
 export function resolveEmailProvider(
 	env: ReturnType<typeof serverEnv> = serverEnv(),
-): EmailProviderName | null {
+): ResolvedEmailProvider | null {
 	const requested =
 		env.EMAIL_PROVIDER ?? (env.RESEND_API_KEY ? "resend" : null);
-	if (requested === "smtp") return env.SMTP_HOST?.trim() ? "smtp" : null;
-	if (requested === "resend") return env.RESEND_API_KEY ? "resend" : null;
+	if (requested === "smtp") {
+		const host = env.SMTP_HOST?.trim();
+		return host ? { name: "smtp", host } : null;
+	}
+	if (requested === "resend") {
+		return env.RESEND_API_KEY ? { name: "resend" } : null;
+	}
 	return null;
 }
 
@@ -69,14 +78,14 @@ export function getEmailDeliveryStatus(): EmailDeliveryStatus {
 		};
 	}
 
-	if (provider === "smtp") {
+	if (provider.name === "smtp") {
 		if (!env.EMAIL_FROM?.trim() && buildEnv.NEXT_PUBLIC_IS_CAP !== "true") {
 			return {
 				configured: false,
 				reason: `${EMAIL_NOT_CONFIGURED_MESSAGE}: EMAIL_FROM is not set`,
 			};
 		}
-		return { configured: true, provider };
+		return { configured: true, provider: provider.name };
 	}
 
 	if (
@@ -89,7 +98,7 @@ export function getEmailDeliveryStatus(): EmailDeliveryStatus {
 			reason: `${EMAIL_NOT_CONFIGURED_MESSAGE}: EMAIL_FROM or RESEND_FROM_DOMAIN is not set`,
 		};
 	}
-	return { configured: true, provider };
+	return { configured: true, provider: provider.name };
 }
 
 export const isEmailDeliveryConfigured = () =>
@@ -166,25 +175,15 @@ export const sendEmail = async ({
 		};
 	}
 
-	if (provider === "smtp") {
-		const host = env.SMTP_HOST?.trim();
-		if (!host) {
-			const reason = `${EMAIL_NOT_CONFIGURED_MESSAGE}: SMTP_HOST is not set`;
-			warnEmailNotConfigured(reason);
-			return {
-				data: null,
-				error: { name: "email_not_configured", message: reason },
-			};
-		}
-
+	if (provider.name === "smtp") {
 		if (scheduledAt) {
 			console.warn(
-				`[email] scheduledAt requested but provider is smtp — sending immediately`,
+				"[email] scheduledAt requested but provider is smtp; sending immediately",
 			);
 		}
 		if (idempotencyKey) {
 			console.warn(
-				`[email] idempotencyKey requested but provider is smtp — ignoring`,
+				"[email] idempotencyKey requested but provider is smtp; ignoring",
 			);
 		}
 
@@ -198,7 +197,7 @@ export const sendEmail = async ({
 
 		return sendSmtpEmail(
 			createSmtpTransport({
-				host,
+				host: provider.host,
 				port: env.SMTP_PORT ?? 587,
 				secure: env.SMTP_SECURE,
 				user: user || undefined,

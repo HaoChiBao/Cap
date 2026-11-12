@@ -145,7 +145,9 @@ describe("email config", () => {
 	it("defaults to resend when only RESEND_API_KEY is set", () => {
 		mocks.env.RESEND_API_KEY = "re_test";
 		mocks.env.SMTP_HOST = "smtp.example.com";
-		expect(resolveEmailProvider(mocks.env as never)).toBe("resend");
+		expect(resolveEmailProvider(mocks.env as never)).toEqual({
+			name: "resend",
+		});
 	});
 
 	it("selects smtp only when EMAIL_PROVIDER=smtp and SMTP_HOST is set", () => {
@@ -153,7 +155,10 @@ describe("email config", () => {
 		expect(resolveEmailProvider(mocks.env as never)).toBeNull();
 
 		mocks.env.SMTP_HOST = "smtp.example.com";
-		expect(resolveEmailProvider(mocks.env as never)).toBe("smtp");
+		expect(resolveEmailProvider(mocks.env as never)).toEqual({
+			name: "smtp",
+			host: "smtp.example.com",
+		});
 		expect(getEmailDeliveryStatus().configured).toBe(false);
 
 		mocks.env.EMAIL_FROM = "Cap <auth@example.com>";
