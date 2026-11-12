@@ -35,12 +35,18 @@ function createServerEnv() {
 			APNS_TEAM_ID: z.string().optional(),
 			APNS_PRIVATE_KEY: z.string().optional(),
 
-			EMAIL_PROVIDER: z
-				.enum(["resend", "smtp"])
-				.optional()
-				.describe(
-					"Email provider for transactional emails. Defaults to 'resend' when RESEND_API_KEY is set; set to 'smtp' for SMTP.",
-				),
+			EMAIL_PROVIDER: z.preprocess(
+				(value) =>
+					value === "" || value === undefined || value === null
+						? undefined
+						: value,
+				z
+					.enum(["resend", "smtp"])
+					.optional()
+					.describe(
+						"Email provider for transactional emails. Defaults to 'resend' when RESEND_API_KEY is set; set to 'smtp' for SMTP.",
+					),
+			),
 			EMAIL_FROM: z
 				.string()
 				.optional()
