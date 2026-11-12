@@ -26,7 +26,7 @@ That's it! Cap will be available at `http://localhost:3000`.
 The default `docker-compose.yml` includes placeholder secrets for quick local testing. **If you're deploying to a public server or production environment**, you must change these values. See the [Production Checklist](#production-checklist) below.
 </Warning>
 
-Login codes will appear in the logs until email is configured, and the verify screen says "Email (Resend) is not configured":
+Login codes will appear in the logs until email is configured, and the verify screen says email is not configured:
 ```bash
 docker compose logs cap-web
 ```
@@ -129,15 +129,38 @@ CAP_VIDEOS_DEFAULT_PUBLIC=false
 
 ## Email Configuration
 
-Email is optional. Without it, login codes are printed to the cap-web logs, the verify screen shows "Email (Resend) is not configured", and invite or notification emails are skipped (invite links still work). Cap only sends email when **both** variables below are set; if Resend rejects a message, the error is logged and the sign-in fails instead of claiming a code was sent. To send emails:
+Email is optional. Without it, login codes are printed to the cap-web logs, the verify screen says email is not configured, and invite or notification emails are skipped (invite links still work). If the provider rejects a message, the error is logged and the sign-in fails instead of claiming a code was sent.
 
-1. Create an account at [Resend](https://resend.com)
-2. Add these environment variables:
-   ```bash
-   RESEND_API_KEY=re_xxxxx
-   RESEND_FROM_DOMAIN=yourdomain.com
-   ```
-3. Verify the domain in Resend. Login emails are sent from `auth@RESEND_FROM_DOMAIN`.
+Set `EMAIL_FROM` to the full From address (for example `Cap <auth@yourdomain.com>`). When unset, Cap falls back to `auth@RESEND_FROM_DOMAIN` for Resend.
+
+### Resend
+
+When `RESEND_API_KEY` is set, Cap defaults to Resend (`EMAIL_PROVIDER` can be omitted or set to `resend`):
+
+```bash
+RESEND_API_KEY=re_xxxxx
+RESEND_FROM_DOMAIN=yourdomain.com
+# Optional override of the From address:
+# EMAIL_FROM=Cap <auth@yourdomain.com>
+```
+
+Verify the domain in [Resend](https://resend.com). Without `EMAIL_FROM`, login emails are sent from `auth@RESEND_FROM_DOMAIN`.
+
+### SMTP
+
+For self-hosted mail (Postal, SES SMTP, Mailgun SMTP, and similar), set `EMAIL_PROVIDER=smtp` and the SMTP variables:
+
+```bash
+EMAIL_PROVIDER=smtp
+EMAIL_FROM=Cap <auth@yourdomain.com>
+SMTP_HOST=mail.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=username
+SMTP_PASS=secret
+```
+
+`SMTP_SECURE=true` is for implicit TLS (usually port 465). Leave it `false` for STARTTLS on 587. Set both `SMTP_USER` and `SMTP_PASS`, or neither. SMTP cannot schedule or cancel delayed sends (`scheduledAt` / Resend cancel): Cap logs a warning and sends those messages immediately.
 
 ## Media Server Capacity
 
