@@ -35,9 +35,41 @@ function createServerEnv() {
 			APNS_TEAM_ID: z.string().optional(),
 			APNS_PRIVATE_KEY: z.string().optional(),
 
-			// Cap uses Resend for email sending, including sending login code emails
+			EMAIL_PROVIDER: z.preprocess(
+				(value) =>
+					value === "" || value === undefined || value === null
+						? undefined
+						: value,
+				z
+					.enum(["resend", "smtp"])
+					.optional()
+					.describe(
+						"Email provider for transactional emails. Defaults to 'resend' when RESEND_API_KEY is set; set to 'smtp' for SMTP.",
+					),
+			),
+			EMAIL_FROM: z
+				.string()
+				.optional()
+				.describe(
+					"Full from address (e.g. 'Cap <auth@example.com>'). Falls back to 'auth@{RESEND_FROM_DOMAIN}' when unset.",
+				),
+
 			RESEND_API_KEY: z.string().optional(),
 			RESEND_FROM_DOMAIN: z.string().optional(),
+
+			SMTP_HOST: z.string().optional(),
+			SMTP_PORT: z.preprocess(
+				(value) =>
+					value === "" || value === undefined || value === null
+						? undefined
+						: value,
+				z.coerce.number().int().positive().optional(),
+			),
+			SMTP_SECURE: boolString(false).describe(
+				"Use TLS on connect (port 465). Leave false for STARTTLS on 587.",
+			),
+			SMTP_USER: z.string().optional(),
+			SMTP_PASS: z.string().optional(),
 
 			/// S3 configuration
 			// Though they are prefixed with `CAP_AWS`, these don't have to be
