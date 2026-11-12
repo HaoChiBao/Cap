@@ -200,15 +200,16 @@ jobs:
           path: |
             **/*.tsbuildinfo
             packages/*/dist
-          key: ${{ runner.os }}-${{ runner.arch }}-tsbuildinfo-${{ hashFiles('bun.lock', '**/tsconfig*.json') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-tsbuildinfo-${{ hashFiles('bun.lock', '**/tsconfig*.json') }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-tsbuildinfo-${{ hashFiles('bun.lock', '**/tsconfig*.json') }}-
             ${{ runner.os }}-${{ runner.arch }}-tsbuildinfo-
 
       - name: Typecheck
         run: bun run typecheck
 
       - name: Save TypeScript build info
-        if: ${{ github.ref == 'refs/heads/main' && steps.tsbuildinfo-cache.outputs.cache-hit != 'true' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         continue-on-error: true
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
